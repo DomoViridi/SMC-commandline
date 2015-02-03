@@ -30,7 +30,7 @@
 #define __SMC_H__
 #endif
 
-#define VERSION               "0.01"
+#define VERSION               "0.02"
 
 #define OP_NONE               0
 #define OP_LIST               1 

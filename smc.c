@@ -36,6 +36,28 @@
 
 io_connect_t conn;
 
+/*
+ * AAARG!!
+ *
+ * Private function definitions starting with an underscore :-((
+ *
+ * Rename to 'mystrtoul()' or something
+ */
+
+/*
+ * Appears to:
+ * - convert the series of bytes in str to a 32 bit (4 byte) integer
+ * - str[0] becomes the most significant byte (biggest shift)
+ * - str[3] becomes the least significant byte (least shift)
+ * Apparent distinction between base=16 and others is meaningless
+ * Seems to be geared to size==4, but less also works
+ * For size>4 overflows, so fails gracefully
+ * Ergo: works well for any size (<4, ==4, >4). Result is always a 32 bit int.
+ * - Does *not* convert from hex or dec to unsigned long, so the name is deceptive
+ * - By adding to an int this method is independant on the byte order of the internal representation.
+ *
+ *  == Rename to 'bytes2uint32'
+ */
 UInt32 _strtoul(char *str, int size, int base)
 {
     UInt32 total = 0;
@@ -46,14 +68,24 @@ UInt32 _strtoul(char *str, int size, int base)
         if (base == 16)
             total += str[i] << (size - 1 - i) * 8;
         else
+            // Only difference for other radix: cast to unsigned char
             total += (unsigned char) (str[i] << (size - 1 - i) * 8);
     }
     return total;
 }
 
+/*
+ * Appears to:
+ * - convert the bytes in 'val' to a string of bytes in 'str'
+ * - MSB becomes the first character
+ * - LSB becomes the last character
+ * Input 'val' is limited to 32 bits (4 bytes), so output will never be more than 4 characters
+ *
+ *  == Rename to 'uint32tobytes
+ */
 void _ultostr(char *str, UInt32 val)
 {
-    str[0] = '\0';
+    str[0] = '\0'; // Redundant. sprintf() does not require a terminated string as first parameter
     sprintf(str, "%c%c%c%c", 
             (unsigned int) val >> 24,
             (unsigned int) val >> 16,
@@ -61,6 +93,18 @@ void _ultostr(char *str, UInt32 val)
             (unsigned int) val);
 }
 
+/*
+ * Appears to:
+ * - convert bytes in 'str' to a float
+ * - 'size' is the number of bytes taken from 'str'
+ * - '8-e' is the number of bits to take from each byte in 'str'
+ * - fail completely: for e>0 bits of str[] overlap
+ * Was the intention to shift the whole series of bytes to the right by 'e' bits
+ * That would make the input a fixed point representation. Everything after
+ * the fixed point is still dropped.
+ *
+ *  == Rename to 'bytes2float'
+ */
 float _strtof(char *str, int size, int e)
 {
     float total = 0;
@@ -69,8 +113,12 @@ float _strtof(char *str, int size, int e)
     for (i = 0; i < size; i++)
     {
         if (i == (size - 1))
+            // MSB in 'str' is special.
+            // Already a byte, it is reduced by 'e' bits and added to the low part of 'total'
             total += (str[i] & 0xff) >> e;
+            // Strange cutoff to 0xff. str[i] is already a char
         else
+            // Other bytes in 'str':
             total += str[i] << (size - 1 - i) * (8 - e);
     }
     
@@ -80,6 +128,7 @@ float _strtof(char *str, int size, int e)
 void printFPE2(SMCVal_t val)
 {
     /* FIXME: This decode is incomplete, last 2 bits are dropped */
+    /* No shit, Einstein!. Your _strtof() is broken */
     
     printf("%.0f ", _strtof(val.bytes, val.dataSize, 2));
 }
@@ -163,49 +212,87 @@ kern_return_t SMCClose(io_connect_t conn)
 
 kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *outputStructure)
 {
-    IOItemCount   structureInputSize;
-    IOByteCount   structureOutputSize;
+    size_t  structureInputSize;
+    size_t  structureOutputSize;
     
     structureInputSize = sizeof(SMCKeyData_t);
     structureOutputSize = sizeof(SMCKeyData_t);
-    
-    return IOConnectMethodStructureIStructureO(
-                                               conn,
-                                               index,
-                                               structureInputSize,
-                                               &structureOutputSize,
-                                               inputStructure,
-                                               outputStructure
-                                               );
+
+    // IOConnectMethodStructureIStructureO is depricated and no longer available
+    // See https://developer.apple.com/library/mac/samplecode/SimpleUserClient/Listings/SimpleUserClientInterface_c.html
+    // for an example of a replacement.
+    /*
+     From IOKitLib.h:
+     
+     kern_return_t
+     IOConnectCallStructMethod(
+        mach_port_t	 connection,		// In
+        uint32_t	 selector,          // In
+        const void	*inputStruct,		// In
+        size_t		 inputStructCnt,	// In
+        void		*outputStruct,		// Out
+        size_t		*outputStructCnt)	// In/Out
+     AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER;
+
+     */
+    return IOConnectCallStructMethod(
+                                        conn,
+                                        index,
+                                        inputStructure,
+                                        structureInputSize,
+                                        outputStructure,
+                                        &structureOutputSize
+                                    );
 }
 
+/*
+ * Read the specific SMC value for a given key
+ */
 kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
 {
     kern_return_t result;
     SMCKeyData_t  inputStructure;
     SMCKeyData_t  outputStructure;
-    
+
+    // Initialise all values to zero
     memset(&inputStructure, 0, sizeof(SMCKeyData_t));
     memset(&outputStructure, 0, sizeof(SMCKeyData_t));
     memset(val, 0, sizeof(SMCVal_t));
-    
+
+    // Convert 4 bytes in 'key' to an Int32, with key[0] as MSB
     inputStructure.key = _strtoul(key, 4, 16);
-    sprintf(val->key, key);
-    inputStructure.data8 = SMC_CMD_READ_KEYINFO;    
-    
+    // Now print the Int32 as a string of characters into val->key ??
+    // Is this intended as a simple string copy?
+    strcpy(val->key, key);
+
+    // Put the command to read info about the key in the inputStructure
+    inputStructure.data8 = SMC_CMD_READ_KEYINFO;
+ 
+    // SMCCall with only the key filled in will fill outputStructure with:
+    // - dataSize
+    // - dataType
     result = SMCCall(KERNEL_INDEX_SMC, &inputStructure, &outputStructure);
     if (result != kIOReturnSuccess)
-        return result;
+        return result;  // Quit if call fails
     
+    // Remember the dataSize
     val->dataSize = outputStructure.keyInfo.dataSize;
+    
+    // Convert the UInt32 dataType to string of bytes in 'val'
     _ultostr(val->dataType, outputStructure.keyInfo.dataType);
-    inputStructure.keyInfo.dataSize = val->dataSize;
+
+    // Set up inputStructure to read the actual value
+    inputStructure.keyInfo.dataSize = val->dataSize;      /** WARNING: accepts any data size. Danger of array overflow **/
+
+    // Put the command to read value of the key in the inputStructure
     inputStructure.data8 = SMC_CMD_READ_BYTES;
     
+    // Read the value of the key
     result = SMCCall(KERNEL_INDEX_SMC, &inputStructure, &outputStructure);
     if (result != kIOReturnSuccess)
-        return result;
+        return result;  // Quit if call fails
     
+    // Bluntly copy bytes from outputStructure to 'val'
     memcpy(val->bytes, outputStructure.bytes, sizeof(outputStructure.bytes));
     
     return kIOReturnSuccess;
@@ -241,6 +328,10 @@ kern_return_t SMCWriteKey(SMCVal_t writeVal)
     return kIOReturnSuccess;
 }
 
+
+/*
+ * Find the total number of keys in SMC
+ */
 UInt32 SMCReadIndexCount(void)
 {
     SMCVal_t val;
@@ -249,6 +340,9 @@ UInt32 SMCReadIndexCount(void)
     return _strtoul(val.bytes, val.dataSize, 10);
 }
 
+/*
+ * Print all SMC values
+ */
 kern_return_t SMCPrintAll(void)
 {
     kern_return_t result;
@@ -259,6 +353,7 @@ kern_return_t SMCPrintAll(void)
     UInt32Char_t  key;
     SMCVal_t      val;
     
+    // Find the total number of keys in SMC
     totalKeys = SMCReadIndexCount();
     for (i = 0; i < totalKeys; i++)
     {
@@ -324,6 +419,15 @@ kern_return_t SMCPrintFans(void)
     return kIOReturnSuccess;
 }
 
+
+/*
+ * Print better help info
+ * -r and -w require -k
+ * 'version' -> 'print version info of this program'
+ * 'fan info decoded' -> ... something
+ * 'keys are ...' (strings as defined in...)
+ * 'values are ...' (n hex digits)
+ */
 void usage(char* prog)
 {
     printf("Apple System Management Control (SMC) tool %s\n", VERSION);
@@ -347,9 +451,10 @@ int main(int argc, char *argv[])
     
     kern_return_t result;
     int           op = OP_NONE;
-    UInt32Char_t  key = "\0";
-    SMCVal_t      val;
-    
+    UInt32Char_t  key = "\0";  // Can hold 4 bytes and a terminating \0
+    SMCVal_t      val;         // Struct to hold key, size, value and 32 bytes
+
+    // Process the options. Reminder: the ':' denotes a required argument
     while ((c = getopt(argc, argv, "fhk:lrw:v")) != -1)
     {
         switch(c)
@@ -358,7 +463,7 @@ int main(int argc, char *argv[])
                 op = OP_READ_FAN;
                 break;
             case 'k':
-                strncpy(key, optarg, sizeof(key));   //fix for buffer overflow
+                strncpy(key, optarg, sizeof(key));   //fix for buffer overflow; limit to 4 characters (plus terminator)
                 break;
             case 'l':
                 op = OP_LIST;
@@ -367,20 +472,34 @@ int main(int argc, char *argv[])
                 op = OP_READ;
                 break;
             case 'v':
-                printf("%s\n", VERSION);
+                printf("%s\n", VERSION);    // Simply print the version number and quit
                 return 0;
                 break;
             case 'w':
                 op = OP_WRITE;
             {
                 int i;
-                char c[3];
+                char c[3];  // temp string to hold 2 hex digits and terminator
+                
+        /*
+         *  WRONG !!!
+         */
+                // go through the characters of <value> two by two (sort of...)
                 for (i = 0; i < strlen(optarg); i++)
                 {
+                    // Create a string of the next two characters in <value>
+                    // NOTE: 2*i will be much bigger than strlen(optarg), so this will parse beyond the end of <value>
                     sprintf(c, "%c%c", optarg[i * 2], optarg[(i * 2) + 1]);
+                    // Convert the two hex digits to a byte and add it to val.bytes
                     val.bytes[i] = (int) strtol(c, NULL, 16);
                 }
-                val.dataSize = i / 2;
+                val.dataSize = i / 2;   // Size in bytes: two hex characters form one byte
+                
+                // Half-assed check for valid input
+                // Better:
+                //  - scan string for hex digts
+                //  - nothing may follow the hex digits
+                //  - nr of digits must be even (?)
                 if ((val.dataSize * 2) != strlen(optarg))
                 {
                     printf("Error: value is not valid\n");
@@ -390,19 +509,27 @@ int main(int argc, char *argv[])
                 break;
             case 'h':
             case '?':
-                op = OP_NONE;
+                op = OP_NONE; // Add: OP_HELP
                 break;
         }
     }
     
-    if (op == OP_NONE)
+    if (op == OP_NONE) //  or == OP_HELP
     {
         usage(argv[0]);
         return 1;
     }
     
-    SMCOpen(&conn);
+/*
+ *  Add all checks for valid parameters
+ *   - OP_READ: must have 'key' value
+ *   - OP_WRITE: must have 'key' value
+ *   - Either -f, -r or -w. No combinations
+ */
     
+    // Open a connection to the SMC system; store the connection info in the 'conn' global variable
+    SMCOpen(&conn);
+
     switch(op)
     {
         case OP_LIST:
@@ -411,7 +538,7 @@ int main(int argc, char *argv[])
                 printf("Error: SMCPrintAll() = %08x\n", result);
             break;
         case OP_READ:
-            if (strlen(key) > 0)
+            if (strlen(key) > 0) /* This test should go before opening the connection */
             {
                 result = SMCReadKey(key, &val);
                 if (result != kIOReturnSuccess)
@@ -430,9 +557,13 @@ int main(int argc, char *argv[])
                 printf("Error: SMCPrintFans() = %08x\n", result);
             break;
         case OP_WRITE:
-            if (strlen(key) > 0)
+            if (strlen(key) > 0) /* This test should go before opening the connection */
             {
-                sprintf(val.key, key);
+                /* What is attempted here?? */
+                // val.key is a 4-character string (plus terminator)
+                // key is also a 4-character string (plus terminator)
+                // looks like a simple strcpy()
+                strcpy(val.key, key);
                 result = SMCWriteKey(val);
                 if (result != kIOReturnSuccess)
                     printf("Error: SMCWriteKey() = %08x\n", result);
