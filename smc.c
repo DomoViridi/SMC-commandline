@@ -51,25 +51,31 @@ io_connect_t conn;
  * - str[3] becomes the least significant byte (least shift)
  * Apparent distinction between base=16 and others is meaningless
  * Seems to be geared to size==4, but less also works
- * For size>4 overflows, so fails gracefully
+ * For size>4 the UInt32 simply overflows, so that part fails gracefully.
+ * 'size' must not be greater than the number of bytes available in the string.
  * Ergo: works well for any size (<4, ==4, >4). Result is always a 32 bit int.
  * - Does *not* convert from hex or dec to unsigned long, so the name is deceptive
- * - By adding to an int this method is independant on the byte order of the internal representation.
+ * - By adding values to an int this method is independent on the byte order of the internal representation.
+ * ==
+ * Renamed from _strtoul() to bytes2uint32() to better reflect the function
+ * Dropped the 'base' parameter. No base conversion takes place, all it does
+ * is move bytes around.
+ * Now works correctly, especially in the cases where it was called with base=10.
  *
- *  == Rename to 'bytes2uint32'
+ * Convert an array of bytes to a UInt32.
+ * - bytes[0] is seen as the most significant byte in the array.
+ * - The 'size' (values 1-4) gives the number of bytes read from 'bytes'.
+ * The conversion is independent of the byte order ("endian-ness") of the system; bytes[0] will
+ * always be the most significant part of the result.
  */
-UInt32 _strtoul(char *str, int size, int base)
+UInt32 bytes2uint32(char *bytes, int size)
 {
     UInt32 total = 0;
     int i;
     
     for (i = 0; i < size; i++)
     {
-        if (base == 16)
-            total += str[i] << (size - 1 - i) * 8;
-        else
-            // Only difference for other radix: cast to unsigned char
-            total += (unsigned char) (str[i] << (size - 1 - i) * 8);
+            total += bytes[i] << (size - 1 - i) * 8;
     }
     return total;
 }
@@ -98,10 +104,11 @@ void _ultostr(char *str, UInt32 val)
  * - convert bytes in 'str' to a float
  * - 'size' is the number of bytes taken from 'str'
  * - '8-e' is the number of bits to take from each byte in 'str'
- * - fail completely: for e>0 bits of str[] overlap
+ * - fail completely: for e>0 bits of str[] will overlap
  * Was the intention to shift the whole series of bytes to the right by 'e' bits
  * That would make the input a fixed point representation. Everything after
  * the fixed point is still dropped.
+ * - lucks out for 2-byte input. For that case there is no overlap in the bits
  *
  *  == Rename to 'bytes2float'
  */
@@ -133,11 +140,25 @@ void printFPE2(SMCVal_t val)
     printf("%.0f ", _strtof(val.bytes, val.dataSize, 2));
 }
 
+/*
+ * Print the value of an SMCVal_t (which has an integer type of 8, 16 or 32 bits)
+ * as a decimal integer value
+ */
 void printUInt(SMCVal_t val)
 {
-    printf("%u ", (unsigned int) _strtoul(val.bytes, val.dataSize, 10));
+    /*
+     * == Problem fixed: bytes 01 14 were returned as '20', should be 276
+     * Solved by replacing "home brew" _strtoul() (with 'base' parameter) by
+     * bytes2uint32() (without a 'base' parameter).
+     */
+    printf("%u ", (unsigned int) bytes2uint32(val.bytes, val.dataSize));
 }
 
+/*
+ * Print the value of an SMCVal_t as a sequence of bytes, in hexadecimal
+ * - number of bytes is in val.dataSize
+ * - bytes are in val.bytes[]
+ */
 void printBytesHex(SMCVal_t val)
 {
     int i;
@@ -148,18 +169,31 @@ void printBytesHex(SMCVal_t val)
     printf(")\n");
 }
 
+/*
+ * Print the information contained in an SMCVal_t
+ */
 void printVal(SMCVal_t val)
 {
+    // - two spaces
+    // - 4 characters for the name of the key
+    // - 4 characters for the datatype of the key
     printf("  %-4s  [%-4s]  ", val.key, val.dataType);
+
+    // print the value only if the dataSize is bigger than zero
     if (val.dataSize > 0)
     {
-        if ((strcmp(val.dataType, DATATYPE_UINT8) == 0) ||
+        // For integer dataTypes use printUInt()
+        // For fpe2 dataType use printFPE2()
+        // For others print nothing
+        if ((strcmp(val.dataType, DATATYPE_UINT8) == 0)  ||
             (strcmp(val.dataType, DATATYPE_UINT16) == 0) ||
-            (strcmp(val.dataType, DATATYPE_UINT32) == 0))
+            (strcmp(val.dataType, DATATYPE_UINT32) == 0)
+           )
             printUInt(val);
         else if (strcmp(val.dataType, DATATYPE_FPE2) == 0)
             printFPE2(val);
         
+        // Print the byte values in hexadecimal
         printBytesHex(val);
     }
     else
@@ -210,6 +244,14 @@ kern_return_t SMCClose(io_connect_t conn)
 }
 
 
+/*
+ * Exchange data with the kernel extension (SMC device in the AppleSMC extension)
+ * All reading and writing of data in this program goes through this call
+ * - 'index' is passed to the kernel extension as the command to execute
+ * - 'inputStructure' contains data passed to the kernel extension
+ * - 'outputStructure' will contain data returned from the kernel extension
+ * - global variable 'conn' is used as the connection to use
+ */
 kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *outputStructure)
 {
     size_t  structureInputSize;
@@ -221,6 +263,9 @@ kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *out
     // IOConnectMethodStructureIStructureO is depricated and no longer available
     // See https://developer.apple.com/library/mac/samplecode/SimpleUserClient/Listings/SimpleUserClientInterface_c.html
     // for an example of a replacement.
+    
+    // For completeness there should be a pre-10.5 version of the code here, with #ifdef
+    // switches for compilation to different targets.
     /*
      From IOKitLib.h:
      
@@ -260,8 +305,9 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
     memset(val, 0, sizeof(SMCVal_t));
 
     // Convert 4 bytes in 'key' to an Int32, with key[0] as MSB
-    inputStructure.key = _strtoul(key, 4, 16);
-    // Now print the Int32 as a string of characters into val->key ??
+    inputStructure.key = bytes2uint32(key, 4);
+
+    // Also: print the Int32 as a string of characters into val->key ??
     // Is this intended as a simple string copy?
     strcpy(val->key, key);
 
@@ -316,7 +362,7 @@ kern_return_t SMCWriteKey(SMCVal_t writeVal)
     memset(&inputStructure, 0, sizeof(SMCKeyData_t));
     memset(&outputStructure, 0, sizeof(SMCKeyData_t));
     
-    inputStructure.key = _strtoul(writeVal.key, 4, 16);
+    inputStructure.key = bytes2uint32(writeVal.key, 4);
     inputStructure.data8 = SMC_CMD_WRITE_BYTES;    
     inputStructure.keyInfo.dataSize = writeVal.dataSize;
     memcpy(inputStructure.bytes, writeVal.bytes, sizeof(writeVal.bytes));
@@ -331,13 +377,15 @@ kern_return_t SMCWriteKey(SMCVal_t writeVal)
 
 /*
  * Find the total number of keys in SMC
+ * - Use the special key "#KEY" to get the number
+ * - Convert to an int
  */
 UInt32 SMCReadIndexCount(void)
 {
     SMCVal_t val;
     
     SMCReadKey("#KEY", &val);
-    return _strtoul(val.bytes, val.dataSize, 10);
+    return bytes2uint32(val.bytes, val.dataSize);
 }
 
 /*
@@ -355,26 +403,44 @@ kern_return_t SMCPrintAll(void)
     
     // Find the total number of keys in SMC
     totalKeys = SMCReadIndexCount();
+    
+    // Iterate through all of the keys
     for (i = 0; i < totalKeys; i++)
     {
+        // Clear all the data
         memset(&inputStructure, 0, sizeof(SMCKeyData_t));
         memset(&outputStructure, 0, sizeof(SMCKeyData_t));
         memset(&val, 0, sizeof(SMCVal_t));
         
-        inputStructure.data8 = SMC_CMD_READ_INDEX;
-        inputStructure.data32 = i;
-        
+        inputStructure.data8 = SMC_CMD_READ_INDEX;  // Set command to read
+        inputStructure.data32 = i;                  // Set key index number
+
+        // Get the key name
         result = SMCCall(KERNEL_INDEX_SMC, &inputStructure, &outputStructure);
         if (result != kIOReturnSuccess)
-            continue;
-        
+            /*
+             * == Improvement: print an error "Failed to read key name with index %d; Error code%d\n"
+             */
+            continue; // on error skip the rest of the loop and go back to 'for'
+
+        // Convert the 4 bytes of the key name into a string of 4 bytes
+        // (independent of the byte order of the processor)
         _ultostr(key, outputStructure.key); 
+
+        // Read the value associated with the key
+        result = SMCReadKey(key, &val); // (ignore the result code)
+        /*
+         * == Improvement: print an error "Failed to read value of key %s; Error code %d\n"
+         */
         
-        result = SMCReadKey(key, &val);
+        // Print the value
         printVal(val);
     }
     
-    return kIOReturnSuccess;
+    /* == Improvement: count the nr of errors, both from SMCCall and SMCReadKey
+     *                 and print them out.
+     */
+    return kIOReturnSuccess; // Always return succes :-(
 }
 
 kern_return_t SMCPrintFans(void)
@@ -388,7 +454,7 @@ kern_return_t SMCPrintFans(void)
     if (result != kIOReturnSuccess)
         return kIOReturnError;
     
-    totalFans = _strtoul(val.bytes, val.dataSize, 10); 
+    totalFans = bytes2uint32(val.bytes, val.dataSize);
     printf("Total fans in system: %d\n", totalFans);
     
     for (i = 0; i < totalFans; i++)
@@ -410,7 +476,7 @@ kern_return_t SMCPrintFans(void)
         SMCReadKey(key, &val);
         printf("    Target speed : %.0f\n", _strtof(val.bytes, val.dataSize, 2));
         SMCReadKey("FS! ", &val);
-        if ((_strtoul(val.bytes, 2, 16) & (1 << i)) == 0)
+        if ((bytes2uint32(val.bytes, 2) & (1 << i)) == 0)
             printf("    Mode         : auto\n"); 
         else
             printf("    Mode         : forced\n");
