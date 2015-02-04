@@ -1,0 +1,35 @@
+type bytes  meaning
+---- ------ ---------------------------------------
+ch8*  var   zero-terminated string of characters?
+char  1     single character?
+flag  1     set of 8 flag bits?
+fp6a  2     (unsigned) Fixed point, 6 bit int part, a=10 bit fraction (total 16 bits)?
+fp88  2     (unsigned) Fixed point, 8 bit int part, 8 bit fraction (total 16 bits)?
+fpc4  2     (unsigned) Fixed point, c=12 bit int part, 4 bit fraction (total 16 bits)?
+fpe2  2     (unsigned) Fixed point, e=14 bit int part, 2 bit fraction (total 16 bits)?
+hex_  1/2/4 ??
+si8   1      8 bit signed int?
+si16  2     16 bit signed int?
+sp1e  2     Signed fixed point, 1 bit int part, e=14 bit fraction (total 15 bits plus sign bit)?
+sp2d  2     Signed fixed point, 2 bit int part, d=13 bit fraction (total 15 bits plus sign bit)?
+sp4b  2     Signed fixed point, 4 bit int part, b=11 bit fraction (total 15 bits plus sign bit)?
+sp69  2     Signed fixed point, 6 bit int part, 9 bit fraction (total 15 bits plus sign bit)?
+sp78  2     Signed fixed point, 7 bit int part, 8 bit fraction (total 15 bits plus sign bit)?
+sp96  2     Signed fixed point, 9 bit int part, 6 bit fraction (total 15 bits plus sign bit)?
+spf0  2     Signed fixed point, f=15 bit int part, 0 bit fraction (total 15 bits plus sign bit)?
+ui8   1      8 bit unsigned integer
+ui16  2     16 bit unsigned integer
+ui32  4     32 bit unsigned integer
+{alc  16    ??
+{fds  16    ?? 4 bytes, then 4 characters, then 8 zero bytes
+{lim   3    ??
+{lsc  10    ??
+{lsd   8    ??
+{lsf   6    ??
+{lso   2    ??
+{mss   1    ??
+{pwm   2    ??
+{rev   6    ??
+
+The types starting with a brace '{' are probably special data types which are more like
+a structure than a scalar, fixed point, flag, character or string value.

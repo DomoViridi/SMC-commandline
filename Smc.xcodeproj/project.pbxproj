@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0336DB9B1A82A5270029FA8B /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 0336DB9A1A82A5270029FA8B /* README.md */; };
 		035C436516BE4B4500C8216A /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; settings = {COMPILER_FLAGS = "-DUSE_SMC_MAIN"; }; };
 		035C452016BE588000C8216A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 035C451F16BE588000C8216A /* IOKit.framework */; };
 		8DD76FB00486AB0100D96B5E /* Smc.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* Smc.1 */; };
@@ -26,6 +27,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0336DB991A82A5270029FA8B /* Keytypes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Keytypes.txt; sourceTree = "<group>"; };
+		0336DB9A1A82A5270029FA8B /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		0336DB9C1A82AB2B0029FA8B /* Keylist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Keylist.txt; sourceTree = "<group>"; };
 		035C436316BE4B4500C8216A /* smc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smc.h; sourceTree = "<group>"; };
 		035C436416BE4B4500C8216A /* smc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smc.c; sourceTree = "<group>"; };
 		035C451F16BE588000C8216A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -76,6 +80,9 @@
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
+				0336DB9C1A82AB2B0029FA8B /* Keylist.txt */,
+				0336DB991A82A5270029FA8B /* Keytypes.txt */,
+				0336DB9A1A82A5270029FA8B /* README.md */,
 				C6A0FF2C0290799A04C91782 /* Smc.1 */,
 			);
 			name = Documentation;
@@ -135,6 +142,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0336DB9B1A82A5270029FA8B /* README.md in Sources */,
 				035C436516BE4B4500C8216A /* smc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
