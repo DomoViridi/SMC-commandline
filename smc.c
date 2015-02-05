@@ -100,44 +100,102 @@ void _ultostr(char *str, UInt32 val)
 }
 
 /*
- * Appears to:
- * - convert bytes in 'str' to a float
- * - 'size' is the number of bytes taken from 'str'
- * - '8-e' is the number of bits to take from each byte in 'str'
- * - fail completely: for e>0 bits of str[] will overlap
- * Was the intention to shift the whole series of bytes to the right by 'e' bits
- * That would make the input a fixed point representation. Everything after
- * the fixed point is still dropped.
- * - lucks out for 2-byte input. For that case there is no overlap in the bits
- *
- *  == Rename to 'bytes2float'
+ * Convert a single hexadecimal character to an int
+ * For non-hex characters return zero.
  */
-float _strtof(char *str, int size, int e)
+int hex2int(char c)
 {
-    float total = 0;
+    if ('0' <= c && c <= '9') {
+        return c - '0';
+    } else if ('A' <= c && c <= 'F') {
+        return c - 'A' + 10;
+    } else if ('a' <= c && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    return 0;
+}
+
+/*
+ * Convert an  SMCVal_t value that holds a fixed point value into a double
+ * The exact format is encoded in val.dataType
+ * This has the form "fpIF" or "spIF" where:
+ * - "fp" and "sp" are litteral strings (for unsigned and signed)
+ * - "I" is a hexadecimal digit that gives the number of bits in the integer part
+ * - "F" is a hexadecimal digit that gives the number of bits in the fraction part
+ * For signed fixed point numbers the topmost bit of the first byte is the sign
+ * Example: "fpe2" is an unsigned fixed point number with 0xe=14 integer bits
+ * and 2 fraction bits. Layout in two bytes: i i i i i i i i    i i i i i i f f
+ * Example: "sp69" is a signed fixed point number with 6 integer bits
+ * and 9 fraction bits. Layout in two bytes: s i i i i i i f    f f f f f f f f
+ *
+ * This interpretation of the format was surmised from the way the original version
+ * of this program tried to convert "fpe2" numbers, and looking at all the other,
+ * similar types listed with the -l option.
+ * In all those types the total number of bits adds up to 16, and matches the 2 bytes
+ * in the value. It is unclear if and how a value should be interpreted if the number
+ * of bits in the value does not add up to a multiple of 8. Where will the stuffing bits
+ * be? Before the sign bit? Between the sign bit and the integer bits? Between the
+ * integer bits and the fraction bits? After the fraction bits? Any combination of these?
+ *
+ * For the time being we assume that there are always a whole number of bytes, so our algorithm
+ * can assume that the bits are left-alligned.
+ *
+ * Approach: First convert the bytes to a number, then divide by 2 for the number of bits
+ * in the fraction part. Also stick the sign in there somewhere.
+ */
+double val2float(SMCVal_t val)
+{
+    float total = 0;    // Running total of the return value
+    int signbits = 0;   // Number of sign bits (0 or 1)
+    int intbits = 0;    // Number of integer bits
+    int fracbits = 0;   // Number of fraction bits
+    unsigned char byte; // Temporary holder for a single byte
+    int sign = 0;       // Flag for sign bit. 1= negative, 0= positive
     int i;
     
-    for (i = 0; i < size; i++)
+    // Analise the data type
+    if (val.dataType[0]=='s'){  // First letter is an s?
+        signbits = 1;           // Then we have a sign bit
+    }
+    intbits = hex2int(val.dataType[2]);     // Get the nr of integer bits
+    fracbits = hex2int(val.dataType[3]);    // Get the nr of fraction bits
+    
+    // Build up the number from the bytes
+    // The first byte may contain a sign
+    byte = val.bytes[0];
+    if (signbits > 0) {
+        sign = byte >> 7; // Isolate the top bit
+        byte &= 0x7f;     // Remove the sign bit from the value
+    }
+
+    total = byte;
+    for (i = 1; i < (signbits+intbits+fracbits)/8; i++)
     {
-        if (i == (size - 1))
-            // MSB in 'str' is special.
-            // Already a byte, it is reduced by 'e' bits and added to the low part of 'total'
-            total += (str[i] & 0xff) >> e;
-            // Strange cutoff to 0xff. str[i] is already a char
-        else
-            // Other bytes in 'str':
-            total += str[i] << (size - 1 - i) * (8 - e);
+        total *= (double)(1<<8);    // 'shift' the total 8 bits to the left (multiply by 256)
+        byte = val.bytes[i];    // go via 'byte' to prevent problems with signed char
+        total += byte;      // Add the next byte
+    }
+
+    // Divide by 2 for each fractional bit
+    for (i = 0; i < fracbits; i++) {
+        total /= 2.0;   // Ensure floating point divide
     }
     
+    // Add the sign
+    // (Don't do this before we have all the bytes. Higher bytes might be zero, and we would lose the sign)
+    if (sign) {
+        total = - total;
+    }
     return total;
 }
 
-void printFPE2(SMCVal_t val)
+/*
+ * Print an SMCVal_t value that hold a fixed point representation of a number.
+ */
+void printFixedPoint(SMCVal_t val)
 {
-    /* FIXME: This decode is incomplete, last 2 bits are dropped */
-    /* No shit, Einstein!. Your _strtof() is broken */
     
-    printf("%.0f ", _strtof(val.bytes, val.dataSize, 2));
+    printf("%.3f ", val2float(val) );
 }
 
 /*
@@ -183,15 +241,17 @@ void printVal(SMCVal_t val)
     if (val.dataSize > 0)
     {
         // For integer dataTypes use printUInt()
-        // For fpe2 dataType use printFPE2()
+        // For fp.. and sp.. dataType use printFixedPoint()
         // For others print nothing
         if ((strcmp(val.dataType, DATATYPE_UINT8) == 0)  ||
             (strcmp(val.dataType, DATATYPE_UINT16) == 0) ||
             (strcmp(val.dataType, DATATYPE_UINT32) == 0)
            )
             printUInt(val);
-        else if (strcmp(val.dataType, DATATYPE_FPE2) == 0)
-            printFPE2(val);
+        else if (strncmp(val.dataType, DATATYPE_FP, 2) == 0 ||
+                 strncmp(val.dataType, DATATYPE_SP, 2) == 0
+                 )
+            printFixedPoint(val);
         
         // Print the byte values in hexadecimal
         printBytesHex(val);
@@ -462,19 +522,19 @@ kern_return_t SMCPrintFans(void)
         printf("\nFan #%d:\n", i);
         sprintf(key, "F%dAc", i); 
         SMCReadKey(key, &val); 
-        printf("    Actual speed : %.0f\n", _strtof(val.bytes, val.dataSize, 2));
+        printf("    Actual speed : %.3f\n", val2float(val) );
         sprintf(key, "F%dMn", i);   
         SMCReadKey(key, &val);
-        printf("    Minimum speed: %.0f\n", _strtof(val.bytes, val.dataSize, 2));
+        printf("    Minimum speed: %.3f\n", val2float(val) );
         sprintf(key, "F%dMx", i);   
         SMCReadKey(key, &val);
-        printf("    Maximum speed: %.0f\n", _strtof(val.bytes, val.dataSize, 2));
+        printf("    Maximum speed: %.3f\n", val2float(val) );
         sprintf(key, "F%dSf", i);   
         SMCReadKey(key, &val);
-        printf("    Safe speed   : %.0f\n", _strtof(val.bytes, val.dataSize, 2));
+        printf("    Safe speed   : %.3f\n", val2float(val) );
         sprintf(key, "F%dTg", i);   
         SMCReadKey(key, &val);
-        printf("    Target speed : %.0f\n", _strtof(val.bytes, val.dataSize, 2));
+        printf("    Target speed : %.3f\n", val2float(val) );
         SMCReadKey("FS! ", &val);
         if ((bytes2uint32(val.bytes, 2) & (1 << i)) == 0)
             printf("    Mode         : auto\n"); 

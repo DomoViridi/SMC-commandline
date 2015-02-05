@@ -1,6 +1,7 @@
 List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of what information they contain.
 
   #KEY  [ui32]  276 (bytes 00 00 01 14)
+Number of keys
   $Adr  [ui32]  768 (bytes 00 00 03 00)
   $Num  [ui8 ]  1 (bytes 01)
   +LKS  [flag]  (bytes 07)
@@ -29,28 +30,60 @@ List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of 
   EVCT  [ui16]  0 (bytes 00 00)
   EVMD  [ui32]  0 (bytes 00 00 00 00)
   EVRD  [ch8*]  (bytes f6 06 01 00 00 00 7b cf 73 00 00 00 07 00 7b cf 1e 40 10 04 98 80 7b cf f8 04 00 00 01 00 c8 be)
+
+==== Fans
+== Fan 0
   F0Ac  [fpe2]  1173 (bytes 12 55)
+Actual speed
   F0ID  [{fds]  (bytes 01 01 0e 00 4f 44 44 20 00 00 00 00 00 00 00 00)
+Ident: 4 bytes 1 1 15 0, 4 characters "ODD ", zeros. "Optical Disk Drive"
   F0Mn  [fpe2]  1000 (bytes 0f a0)
+Minimal speed (speed can never be set lower than this)
   F0Mt  [ui16]  0 (bytes 00 00)
+??
   F0Mx  [fpe2]  4350 (bytes 43 f8)
+Maximum speed (speed can never be set higher than this)
   F0Tg  [fpe2]  1173 (bytes 12 54)
+Target speed (system drives the fan towards this speed)
+
+== Fan 1
   F1Ac  [fpe2]  1654 (bytes 19 d9)
+Actual speed
   F1ID  [{fds]  (bytes 01 02 0d 00 48 44 44 20 00 00 00 00 00 00 00 00)
+Ident: 4 bytes 1 2 13 0, 4 characters "HDD ", zeros. "Hard Disk Drive"
   F1Mn  [fpe2]  1100 (bytes 11 30)
+Minimal speed (speed can never be set lower than this)
   F1Mt  [ui16]  0 (bytes 00 00)
+??
   F1Mx  [fpe2]  6300 (bytes 62 70)
+Maximum speed (speed can never be set higher than this)
   F1Tg  [fpe2]  1655 (bytes 19 dc)
+Target speed (system drives the fan towards this speed)
+
+== Fan 1
   F2Ac  [fpe2]  1199 (bytes 12 bd)
+Actual speed
   F2ID  [{fds]  (bytes 01 04 09 00 43 50 55 20 00 00 00 00 00 00 00 00)
+Ident: 4 bytes 1 4 9 0, 4 characters "CPU ", zeros. "Central Processing Unit"
   F2Mn  [fpe2]  1200 (bytes 12 c0)
+Minimal speed (speed can never be set lower than this)
   F2Mt  [ui16]  0 (bytes 00 00)
+??
   F2Mx  [fpe2]  2600 (bytes 28 a0)
+Maximum speed (speed can never be set higher than this)
   F2Tg  [fpe2]  1200 (bytes 12 c0)
+Target speed (system drives the fan towards this speed)
+
+== All fans
   FMAx  [fpe2]  2413 (bytes 25 b4)
+?? Maximum speed for...? This is a pretty low value
   FNum  [ui8 ]  3 (bytes 03)
+Number of fans
   FPhz  [si16]  (bytes 00 00)
+?? Phaze?
   FS!   [ui16]  7 (bytes 00 07)
+Flags: bit[i] indicates if fan i is under automatic (0) or forced (1) control
+
   G3WD  [flag]  (bytes 00)
   GCID  [ui32]  1740640258 (bytes 68 c0 10 02)
   GPU!  [ui8 ]  0 (bytes 00)
@@ -148,9 +181,11 @@ List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of 
   PZ2T  [si8 ]  (bytes 00)
   PZGT  [si8 ]  (bytes 00)
   RBr   [ch8*]  (bytes 6b 37 34 00 00 00 00 00)
+"k74"?
   REV   [{rev]  (bytes 01 64 0f 00 00 05)
   RMde  [char]  (bytes 41)
   RPlt  [ch8*]  (bytes 6b 37 34 00 00 00 00 00)
+"k74"?
   RSvn  [ui32]  0 (bytes 00 00 00 00)
   RVBF  [{rev]  (bytes 01 64 0f 00 00 05)
   RVUF  [{rev]  (bytes 01 64 0f 00 00 05)
@@ -220,18 +255,29 @@ List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of 
   SpCR  [fp6a]  (bytes 00 00)
   SpCS  [si16]  (bytes 06 c8)
   SpCT  [fpc4]  (bytes 12 16)
+==== Temperatures?
   TA0P  [sp78]  (bytes 18 89)
   TA0V  [sp78]  (bytes 18 b1)
   TA0p  [sp78]  (bytes 1a 20)
+=== CPUs?
   TC0C  [sp78]  (bytes 2d cc)
+CPU 0 chip?
   TC0H  [sp78]  (bytes 2c 60)
+CPU 0 heatsink?
   TC1C  [sp78]  (bytes 31 00)
+CPU 1 chip?
   TG0D  [sp78]  (bytes 37 40)
+GPU 0 Diode?
   TG0H  [sp78]  (bytes 35 00)
+GPU 0 heatsink?
   TG0p  [sp78]  (bytes 34 00)
+GPU 0 something?
   TH0O  [sp78]  (bytes 09 00)
+HDD 0 something?
   TH0o  [hex_]  (bytes 80)
+HDD 0 something?
   TH1O  [sp78]  (bytes 09 00)
+HDD 1 something?
   TL0P  [sp78]  (bytes 1f 24)
   TL0V  [sp78]  (bytes 28 0e)
   TL0p  [sp78]  (bytes 2c 20)
@@ -255,7 +301,10 @@ List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of 
   Tp1P  [sp78]  (bytes 32 a0)
   Tp2H  [sp78]  (bytes 37 c0)
   Tp3H  [sp78]  (bytes 34 80)
+
   UPRC  [ui16]  2117 (bytes 08 45)
+
+==== Voltages?
   VC0C  [sp1e]  (bytes 43 3c)
   VC0c  [ui16]  23104 (bytes 5a 40)
   VC5R  [sp1e]  (bytes 00 0d)
@@ -265,6 +314,7 @@ List of all the keys as shown by smc -l on an iMac11,2 with educated guesses of 
   VDPr  [ui16]  11768 (bytes 2e f8)
   VDSR  [spf0]  (bytes 06 ef)
   VG0R  [sp4b]  (bytes 5f d7)
+
   WVr0  [ui8 ]  6 (bytes 06)
   WVr2  [ui8 ]  5 (bytes 05)
   WVw0  [ui8 ]  0 (bytes 00)
