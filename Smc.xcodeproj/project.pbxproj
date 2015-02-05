@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0336DB9B1A82A5270029FA8B /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 0336DB9A1A82A5270029FA8B /* README.md */; };
 		035C436516BE4B4500C8216A /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; settings = {COMPILER_FLAGS = "-DUSE_SMC_MAIN"; }; };
 		035C452016BE588000C8216A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 035C451F16BE588000C8216A /* IOKit.framework */; };
 		8DD76FB00486AB0100D96B5E /* Smc.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* Smc.1 */; };
@@ -142,7 +141,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0336DB9B1A82A5270029FA8B /* README.md in Sources */,
 				035C436516BE4B4500C8216A /* smc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

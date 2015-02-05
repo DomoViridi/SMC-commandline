@@ -255,10 +255,13 @@ Flags: bit[i] indicates if fan i is under automatic (0) or forced (1) control
   SpCR  [fp6a]  (bytes 00 00)
   SpCS  [si16]  (bytes 06 c8)
   SpCT  [fpc4]  (bytes 12 16)
-==== Temperatures?
+==== Temperatures in degrees Celcius
   TA0P  [sp78]  (bytes 18 89)
+Ambient 'P'
   TA0V  [sp78]  (bytes 18 b1)
+Ambient 'V'
   TA0p  [sp78]  (bytes 1a 20)
+Ambient 'p'
 === CPUs?
   TC0C  [sp78]  (bytes 2d cc)
 CPU 0 chip?
@@ -279,8 +282,11 @@ HDD 0 something?
   TH1O  [sp78]  (bytes 09 00)
 HDD 1 something?
   TL0P  [sp78]  (bytes 1f 24)
+LCD Proximity?
   TL0V  [sp78]  (bytes 28 0e)
+LCD 'V'
   TL0p  [sp78]  (bytes 2c 20)
+LCD 'p'
   TL1V  [sp78]  (bytes 24 26)
   TL2V  [sp78]  (bytes 29 c8)
   TLAV  [sp78]  (bytes 29 c8)
