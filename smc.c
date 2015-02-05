@@ -1,10 +1,6 @@
 /*
  *  smc.c
  *  Smc
- *
- *  Created by Erik Groenhuis on 3-2-2013.
- *  Copyright 2013 Vertus Publications. All rights reserved.
- *
  */
 
 /*
