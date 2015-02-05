@@ -33,36 +33,16 @@
 io_connect_t conn;
 
 /*
- * AAARG!!
- *
- * Private function definitions starting with an underscore :-((
- *
- * Rename to 'mystrtoul()' or something
- */
-
-/*
- * Appears to:
- * - convert the series of bytes in str to a 32 bit (4 byte) integer
- * - str[0] becomes the most significant byte (biggest shift)
- * - str[3] becomes the least significant byte (least shift)
- * Apparent distinction between base=16 and others is meaningless
- * Seems to be geared to size==4, but less also works
- * For size>4 the UInt32 simply overflows, so that part fails gracefully.
- * 'size' must not be greater than the number of bytes available in the string.
- * Ergo: works well for any size (<4, ==4, >4). Result is always a 32 bit int.
- * - Does *not* convert from hex or dec to unsigned long, so the name is deceptive
- * - By adding values to an int this method is independent on the byte order of the internal representation.
- * ==
- * Renamed from _strtoul() to bytes2uint32() to better reflect the function
- * Dropped the 'base' parameter. No base conversion takes place, all it does
- * is move bytes around.
- * Now works correctly, especially in the cases where it was called with base=10.
- *
  * Convert an array of bytes to a UInt32.
  * - bytes[0] is seen as the most significant byte in the array.
  * - The 'size' (values 1-4) gives the number of bytes read from 'bytes'.
  * The conversion is independent of the byte order ("endian-ness") of the system; bytes[0] will
  * always be the most significant part of the result.
+ *
+ * Renamed from _strtoul() to bytes2uint32() to better reflect the function
+ * Dropped the 'base' parameter. No base conversion takes place, all it does
+ * is move bytes around.
+ * Now works correctly, especially in the cases where it was called with base=10.
  */
 UInt32 bytes2uint32(char *bytes, int size)
 {
@@ -77,15 +57,14 @@ UInt32 bytes2uint32(char *bytes, int size)
 }
 
 /*
- * Appears to:
- * - convert the bytes in 'val' to a string of bytes in 'str'
+ * Convert the bytes in 'val' to a string of bytes in 'str'
  * - MSB becomes the first character
  * - LSB becomes the last character
  * Input 'val' is limited to 32 bits (4 bytes), so output will never be more than 4 characters
  *
- *  == Rename to 'uint32tobytes
+ * Renamed from _ultostr() to better reflect the function
  */
-void _ultostr(char *str, UInt32 val)
+void uint32tobytes(char *str, UInt32 val)
 {
     str[0] = '\0'; // Redundant. sprintf() does not require a terminated string as first parameter
     sprintf(str, "%c%c%c%c", 
@@ -186,11 +165,10 @@ double val2float(SMCVal_t val)
 }
 
 /*
- * Print an SMCVal_t value that hold a fixed point representation of a number.
+ * Print an SMCVal_t value that holds a fixed point representation of a number.
  */
 void printFixedPoint(SMCVal_t val)
 {
-    
     printf("%.3f ", val2float(val) );
 }
 
@@ -201,7 +179,7 @@ void printFixedPoint(SMCVal_t val)
 void printUInt(SMCVal_t val)
 {
     /*
-     * == Problem fixed: bytes 01 14 were returned as '20', should be 276
+     * == Problem fixed: a value with bytes "01 14" were returned as '20', should be 276
      * Solved by replacing "home brew" _strtoul() (with 'base' parameter) by
      * bytes2uint32() (without a 'base' parameter).
      */
@@ -230,7 +208,8 @@ void printVal(SMCVal_t val)
 {
     // - two spaces
     // - 4 characters for the name of the key
-    // - 4 characters for the datatype of the key
+    // - 4 characters for the datatype of the key (in square braces)
+    // - two spaces
     printf("  %-4s  [%-4s]  ", val.key, val.dataType);
 
     // print the value only if the dataSize is bigger than zero
@@ -258,7 +237,13 @@ void printVal(SMCVal_t val)
     }
 }
 
-kern_return_t SMCOpen(io_connect_t *conn)
+/*
+ * Open a connection to the "AppleSMC" kernel extension
+ * - connection is returned through 'connp'
+ * - on error prints an error message and returns 1
+ * - on success returns kIOReturnSuccess
+ */
+kern_return_t SMCOpen(io_connect_t *connp)
 {
     kern_return_t result;
     mach_port_t   masterPort;
@@ -283,7 +268,7 @@ kern_return_t SMCOpen(io_connect_t *conn)
         return 1;
     }
     
-    result = IOServiceOpen(device, mach_task_self(), 0, conn);
+    result = IOServiceOpen(device, mach_task_self(), 0, connp);
     IOObjectRelease(device);
     if (result != kIOReturnSuccess)
     {
@@ -294,11 +279,13 @@ kern_return_t SMCOpen(io_connect_t *conn)
     return kIOReturnSuccess;
 }
 
+/*
+ * Close the connection given in 'conn'
+ */
 kern_return_t SMCClose(io_connect_t conn)
 {
     return IOServiceClose(conn);
 }
-
 
 /*
  * Exchange data with the kernel extension (SMC device in the AppleSMC extension)
@@ -348,8 +335,14 @@ kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *out
 
 /*
  * Read the specific SMC value for a given key
+ * - Key is held in 'key' as a 4 character string, zero terminated
+ * - The value is returned through 'valp'
+ * Uses SMCCall() twice: first to get information about the value,
+ * then to get the bytes of the value.
+ * If a call fails, returns the error code
+ * If successful returns kIOReturnSuccess
  */
-kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
+kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *valp)
 {
     kern_return_t result;
     SMCKeyData_t  inputStructure;
@@ -358,14 +351,14 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
     // Initialise all values to zero
     memset(&inputStructure, 0, sizeof(SMCKeyData_t));
     memset(&outputStructure, 0, sizeof(SMCKeyData_t));
-    memset(val, 0, sizeof(SMCVal_t));
+    memset(valp, 0, sizeof(SMCVal_t));
 
     // Convert 4 bytes in 'key' to an Int32, with key[0] as MSB
     inputStructure.key = bytes2uint32(key, 4);
 
     // Also: print the Int32 as a string of characters into val->key ??
     // Is this intended as a simple string copy?
-    strcpy(val->key, key);
+    strcpy(valp->key, key);
 
     // Put the command to read info about the key in the inputStructure
     inputStructure.data8 = SMC_CMD_READ_KEYINFO;
@@ -378,13 +371,13 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
         return result;  // Quit if call fails
     
     // Remember the dataSize
-    val->dataSize = outputStructure.keyInfo.dataSize;
+    valp->dataSize = outputStructure.keyInfo.dataSize;
     
     // Convert the UInt32 dataType to string of bytes in 'val'
-    _ultostr(val->dataType, outputStructure.keyInfo.dataType);
+    uint32tobytes(valp->dataType, outputStructure.keyInfo.dataType);
 
     // Set up inputStructure to read the actual value
-    inputStructure.keyInfo.dataSize = val->dataSize;      /** WARNING: accepts any data size. Danger of array overflow **/
+    inputStructure.keyInfo.dataSize = valp->dataSize;      /** WARNING: accepts any data size. Danger of array overflow **/
 
     // Put the command to read value of the key in the inputStructure
     inputStructure.data8 = SMC_CMD_READ_BYTES;
@@ -395,7 +388,7 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
         return result;  // Quit if call fails
     
     // Bluntly copy bytes from outputStructure to 'val'
-    memcpy(val->bytes, outputStructure.bytes, sizeof(outputStructure.bytes));
+    memcpy(valp->bytes, outputStructure.bytes, sizeof(outputStructure.bytes));
     
     return kIOReturnSuccess;
 }
@@ -481,7 +474,7 @@ kern_return_t SMCPrintAll(void)
 
         // Convert the 4 bytes of the key name into a string of 4 bytes
         // (independent of the byte order of the processor)
-        _ultostr(key, outputStructure.key); 
+        uint32tobytes(key, outputStructure.key);
 
         // Read the value associated with the key
         result = SMCReadKey(key, &val); // (ignore the result code)
@@ -499,6 +492,10 @@ kern_return_t SMCPrintAll(void)
     return kIOReturnSuccess; // Always return succes :-(
 }
 
+/*
+ * Print information about the fans
+ * Return an error if the number of fans can not be determined.
+ */
 kern_return_t SMCPrintFans(void)
 {
     kern_return_t result;
@@ -506,6 +503,7 @@ kern_return_t SMCPrintFans(void)
     UInt32Char_t  key;
     int           totalFans, i;
     
+    // Find the number of fans
     result = SMCReadKey("FNum", &val);
     if (result != kIOReturnSuccess)
         return kIOReturnError;
@@ -513,6 +511,7 @@ kern_return_t SMCPrintFans(void)
     totalFans = bytes2uint32(val.bytes, val.dataSize);
     printf("Total fans in system: %d\n", totalFans);
     
+    // Print information of each fan
     for (i = 0; i < totalFans; i++)
     {
         printf("\nFan #%d:\n", i);
@@ -531,6 +530,9 @@ kern_return_t SMCPrintFans(void)
         sprintf(key, "F%dTg", i);   
         SMCReadKey(key, &val);
         printf("    Target speed : %.3f\n", val2float(val) );
+        
+        // Bits in the "FS! " value determine if a fan is in
+        // auto mode or forced mode.
         SMCReadKey("FS! ", &val);
         if ((bytes2uint32(val.bytes, 2) & (1 << i)) == 0)
             printf("    Mode         : auto\n"); 
