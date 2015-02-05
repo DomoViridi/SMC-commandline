@@ -370,6 +370,11 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *valp)
     if (result != kIOReturnSuccess)
         return result;  // Quit if call fails
     
+    /**** Try this: read the 'result' entry in outputStructure to see if call was valid */
+    result = outputStructure.result;
+    if (result != kIOReturnSuccess)
+        return result;  // Quit if call fails
+    
     // Remember the dataSize
     valp->dataSize = outputStructure.keyInfo.dataSize;
     
@@ -493,6 +498,32 @@ kern_return_t SMCPrintAll(void)
 }
 
 /*
+ *
+ */
+kern_return_t printFan(int fan, char * keyformat, char * description)
+{
+    kern_return_t result;
+    SMCVal_t      val;
+    UInt32Char_t  key;
+
+    // Construct the key name from the fan number
+    sprintf(key, keyformat, fan);
+
+    // Get the key value
+    result = SMCReadKey(key, &val);
+    
+    // Print the description, nicely alligned
+    printf("    %-13s: ", description);
+    if (result == kIOReturnSuccess) {
+        printf("%.3f\n", val2float(val) );
+    } else {
+        printf("Not available\n");
+    }
+    
+    return result;
+}
+
+/*
  * Print information about the fans
  * Return an error if the number of fans can not be determined.
  */
@@ -500,8 +531,8 @@ kern_return_t SMCPrintFans(void)
 {
     kern_return_t result;
     SMCVal_t      val;
-    UInt32Char_t  key;
-    int           totalFans, i;
+    int           totalFans;
+    int           i;
     
     // Find the number of fans
     result = SMCReadKey("FNum", &val);
@@ -515,21 +546,12 @@ kern_return_t SMCPrintFans(void)
     for (i = 0; i < totalFans; i++)
     {
         printf("\nFan #%d:\n", i);
-        sprintf(key, "F%dAc", i); 
-        SMCReadKey(key, &val); 
-        printf("    Actual speed : %.3f\n", val2float(val) );
-        sprintf(key, "F%dMn", i);   
-        SMCReadKey(key, &val);
-        printf("    Minimum speed: %.3f\n", val2float(val) );
-        sprintf(key, "F%dMx", i);   
-        SMCReadKey(key, &val);
-        printf("    Maximum speed: %.3f\n", val2float(val) );
-        sprintf(key, "F%dSf", i);   
-        SMCReadKey(key, &val);
-        printf("    Safe speed   : %.3f\n", val2float(val) );
-        sprintf(key, "F%dTg", i);   
-        SMCReadKey(key, &val);
-        printf("    Target speed : %.3f\n", val2float(val) );
+        
+        printFan(i, "F%dMn", "Minimum speed");
+        printFan(i, "F%dMx", "Maximum speed");
+        printFan(i, "F%dSf", "Safe speed");
+        printFan(i, "F%dTg", "Target speed");
+        printFan(i, "F%dAc", "Actual speed");
         
         // Bits in the "FS! " value determine if a fan is in
         // auto mode or forced mode.
