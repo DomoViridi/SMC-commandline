@@ -515,7 +515,7 @@ kern_return_t printFan(int fan, char * keyformat, char * description)
     // Print the description, nicely alligned
     printf("    %-13s: ", description);
     if (result == kIOReturnSuccess) {
-        printf("%.3f\n", val2float(val) );
+        printf("%.2f\n", val2float(val) );
     } else {
         printf("Not available\n");
     }
@@ -532,6 +532,7 @@ kern_return_t SMCPrintFans(void)
     kern_return_t result;
     SMCVal_t      val;
     int           totalFans;
+    UInt32Char_t  key;
     int           i;
     
     // Find the number of fans
@@ -545,8 +546,10 @@ kern_return_t SMCPrintFans(void)
     // Print information of each fan
     for (i = 0; i < totalFans; i++)
     {
-        printf("\nFan #%d:\n", i);
-        
+        printf("\nFan #%d:", i);
+        sprintf(key, "F%dID", i);
+        result = SMCReadKey(key, &val);
+        printf(" %s\n", &val.bytes[4]);
         printFan(i, "F%dMn", "Minimum speed");
         printFan(i, "F%dMx", "Maximum speed");
         printFan(i, "F%dSf", "Safe speed");
