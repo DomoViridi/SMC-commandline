@@ -42,7 +42,7 @@ io_connect_t conn;
  * Renamed from _strtoul() to bytes2uint32() to better reflect the function
  * Dropped the 'base' parameter. No base conversion takes place, all it does
  * is move bytes around.
- * Now works correctly, especially in the cases where it was called with base=10.
+ * Solves the problem in the original in the cases where it was called with base=10.
  */
 UInt32 bytes2uint32(char *bytes, int size)
 {
@@ -51,7 +51,8 @@ UInt32 bytes2uint32(char *bytes, int size)
     
     for (i = 0; i < size; i++)
     {
-            total += bytes[i] << (size - 1 - i) * 8;
+        total = total * 256;
+        total += ((unsigned)bytes[i] & 0xff); // Explicitily promote to uint and chop off to prevent sign extension
     }
     return total;
 }
