@@ -170,7 +170,7 @@ double val2float(SMCVal_t val)
  */
 void printFixedPoint(SMCVal_t val)
 {
-    printf("%.3f ", val2float(val) );
+    printf("%.6g ", val2float(val) );
 }
 
 /*

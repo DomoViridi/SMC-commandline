@@ -71,6 +71,8 @@ HBWK  [flag]
 HDBS  [ui8 ]
 HDST  [hex_]
 HDSW  [hex_]
+
+=== Currents in Amperes?
 IC0C  [sp78]
 IC0c  [ui16]
 IC5R  [sp4b]
@@ -239,12 +241,15 @@ TA0p  [sp78]	Ambient 'p'
 TC0C  [sp78]	CPU 0 chip?
 TC0H  [sp78]	CPU 0 heatsink?
 TC1C  [sp78]	CPU 1 chip?
+=== Graphics processing units?
 TG0D  [sp78]	GPU 0 Diode?
 TG0H  [sp78]	GPU 0 heatsink?
 TG0p  [sp78]	GPU 0 something?
+=== Hard disk drives?
 TH0O  [sp78]	HDD 0 something?
 TH0o  [hex_]	HDD 0 something?
 TH1O  [sp78]	HDD 1 something?
+=== LCD screen?
 TL0P  [sp78]	LCD Proximity?
 TL0V  [sp78]	LCD 'V'
 TL0p  [sp78]	LCD 'p'
@@ -272,15 +277,15 @@ Tp3H  [sp78]
 UPRC  [ui16]
 
 ==== Voltages?
-VC0C  [sp1e]
+VC0C  [sp1e]    CPU 0 main supply voltage? (about 1.14 V)
 VC0c  [ui16]
 VC5R  [sp1e]
 VC8R  [sp2d]
 VCVR  [sp1e]
-VDPR  [sp78]
-VDPr  [ui16]
-VDSR  [spf0]
-VG0R  [sp4b]
+VDPR  [sp78]    (About 12 V)
+VDPr  [ui16]    Same value as VDPR, but as an it representing milivolts.
+VDSR  [spf0]    (About 1800. Strange for a voltage)
+VG0R  [sp4b]    GPU 0? (about 12V)
 
 WVr0  [ui8 ]
 WVr2  [ui8 ]
