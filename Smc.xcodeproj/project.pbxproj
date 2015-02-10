@@ -28,7 +28,7 @@
 /* Begin PBXFileReference section */
 		0336DB991A82A5270029FA8B /* Keytypes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Keytypes.txt; sourceTree = "<group>"; };
 		0336DB9A1A82A5270029FA8B /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		0336DB9C1A82AB2B0029FA8B /* Keylist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Keylist.txt; sourceTree = "<group>"; };
+		0336DB9C1A82AB2B0029FA8B /* Keylist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Keylist.txt; sourceTree = "<group>"; usesTabs = 0; };
 		035C436316BE4B4500C8216A /* smc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smc.h; sourceTree = "<group>"; };
 		035C436416BE4B4500C8216A /* smc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smc.c; sourceTree = "<group>"; };
 		035C451F16BE588000C8216A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };

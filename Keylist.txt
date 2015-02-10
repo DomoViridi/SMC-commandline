@@ -1,7 +1,7 @@
 = List of all the keys as shown by smc -l on an iMac11,2
 = with educated guesses of what information they contain.
 
-#KEY  [ui32]	Number of keys
+#KEY  [ui32]    Number of keys
 $Adr  [ui32]
 $Num  [ui8 ]
 +LKS  [flag]
@@ -33,54 +33,56 @@ EVRD  [ch8*]
 
 ==== Fans
 == Fan 0
-F0Ac  [fpe2]	Actual speed
-F0ID  [{fds]	Ident: 4 bytes, 4 characters "ODD ", zeros. "Optical Disk Drive"
-F0Mn  [fpe2]	Minimal speed (speed can never be set lower than this)
-F0Mt  [ui16]	??
-F0Mx  [fpe2]	Maximum speed (speed can never be set higher than this)
-F0Tg  [fpe2]	Target speed (system drives the fan towards this speed)
+F0Ac  [fpe2]    Actual speed
+F0ID  [{fds]    Ident: 4 bytes, 4 characters "ODD ", zeros. "Optical Disk Drive"
+F0Mn  [fpe2]    Minimal speed (speed can never be set lower than this)
+F0Mt  [ui16]    ??
+F0Mx  [fpe2]    Maximum speed (speed can never be set higher than this)
+F0Tg  [fpe2]    Target speed (system drives the fan towards this speed)
 
 == Fan 1
-F1Ac  [fpe2]	Actual speed
-F1ID  [{fds]	Ident: 4 bytes, 4 characters "HDD ", zeros. "Hard Disk Drive"
-F1Mn  [fpe2]	Minimal speed (speed can never be set lower than this)
-F1Mt  [ui16]	??
-F1Mx  [fpe2]	Maximum speed (speed can never be set higher than this)
-F1Tg  [fpe2]	Target speed (system drives the fan towards this speed)
+F1Ac  [fpe2]    Actual speed
+F1ID  [{fds]    Ident: 4 bytes, 4 characters "HDD ", zeros. "Hard Disk Drive"
+F1Mn  [fpe2]    Minimal speed (speed can never be set lower than this)
+F1Mt  [ui16]    ??
+F1Mx  [fpe2]    Maximum speed (speed can never be set higher than this)
+F1Tg  [fpe2]    Target speed (system drives the fan towards this speed)
 
 == Fan 1
-F2Ac  [fpe2]	Actual speed
-F2ID  [{fds]	Ident: 4 bytes, 4 characters "CPU ", zeros. "Central Processing Unit"
-F2Mn  [fpe2]	Minimal speed (speed can never be set lower than this)
-F2Mt  [ui16]	??
-F2Mx  [fpe2]	Maximum speed (speed can never be set higher than this)
-F2Tg  [fpe2]	Target speed (system drives the fan towards this speed)
+F2Ac  [fpe2]    Actual speed
+F2ID  [{fds]    Ident: 4 bytes, 4 characters "CPU ", zeros. "Central Processing Unit"
+F2Mn  [fpe2]    Minimal speed (speed can never be set lower than this)
+F2Mt  [ui16]    ??
+F2Mx  [fpe2]    Maximum speed (speed can never be set higher than this)
+F2Tg  [fpe2]    Target speed (system drives the fan towards this speed)
 
 == All fans
-FMAx  [fpe2]	?? Maximum speed for...? This is a pretty low value
-FNum  [ui8 ]	Number of fans
-FPhz  [si16]	?? Phaze?
-FS!   [ui16]	Flags: bit[i] indicates if fan i is under automatic (0) or forced (1) control
+FMAx  [fpe2]    ?? Maximum speed for...? This is a pretty low value
+FNum  [ui8 ]    Number of fans
+FPhz  [si16]    ?? Phaze?
+FS!   [ui16]    Flags: bit[i] indicates if fan i is under automatic (0) or forced (1) control
 
 G3WD  [flag]
 GCID  [ui32]
 GPU!  [ui8 ]
 GTHQ  [hex_]
 GTHR  [ui8 ]
+
 HBWK  [flag]
 HDBS  [ui8 ]
 HDST  [hex_]
 HDSW  [hex_]
 
 === Currents in Amperes?
-IC0C  [sp78]
-IC0c  [ui16]
-IC5R  [sp4b]
-IC8V  [sp1e]
-ICVR  [sp69]
-IDSR  [sp69]
-IDTR  [sp69]
-IG0R  [sp4b]
+IC0C  [sp78]    (About 7.8)
+IC0c  [ui16]    (About 13000)
+IC5R  [sp4b]    0
+IC8V  [sp1e]    (About 0.4)
+ICVR  [sp69]    (About 8.9)
+IDSR  [sp69]    (About 7.3)
+IDTR  [sp69]    (About 7.4)
+IG0R  [sp4b]    (About 0.97)
+
 LAcN  [ui8 ]
 LAtN  [ui16]
 LC2D  [ui16]
@@ -160,10 +162,10 @@ PZ2E  [sp96]
 PZ2G  [sp96]
 PZ2T  [si8 ]
 PZGT  [si8 ]
-RBr   [ch8*]	"k74"?
+RBr   [ch8*]    "k74"?
 REV   [{rev]
 RMde  [char]
-RPlt  [ch8*]	"k74"?
+RPlt  [ch8*]    "k74"?
 RSvn  [ui32]
 RVBF  [{rev]
 RVUF  [{rev]
@@ -234,25 +236,25 @@ SpCR  [fp6a]
 SpCS  [si16]
 SpCT  [fpc4]
 ==== Temperatures in degrees Celcius
-TA0P  [sp78]	Ambient 'P'
-TA0V  [sp78]	Ambient 'V'
-TA0p  [sp78]	Ambient 'p'
+TA0P  [sp78]    Ambient 'P'
+TA0V  [sp78]    Ambient 'V'
+TA0p  [sp78]    Ambient 'p'
 === CPUs?
-TC0C  [sp78]	CPU 0 chip?
-TC0H  [sp78]	CPU 0 heatsink?
-TC1C  [sp78]	CPU 1 chip?
+TC0C  [sp78]    CPU 0 chip?
+TC0H  [sp78]    CPU 0 heatsink?
+TC1C  [sp78]    CPU 1 chip?
 === Graphics processing units?
-TG0D  [sp78]	GPU 0 Diode?
-TG0H  [sp78]	GPU 0 heatsink?
-TG0p  [sp78]	GPU 0 something?
+TG0D  [sp78]    GPU 0 Diode?
+TG0H  [sp78]    GPU 0 heatsink?
+TG0p  [sp78]    GPU 0 something?
 === Hard disk drives?
-TH0O  [sp78]	HDD 0 something?
-TH0o  [hex_]	HDD 0 something?
-TH1O  [sp78]	HDD 1 something?
+TH0O  [sp78]    HDD 0 something?
+TH0o  [hex_]    HDD 0 something?
+TH1O  [sp78]    HDD 1 something?
 === LCD screen?
-TL0P  [sp78]	LCD Proximity?
-TL0V  [sp78]	LCD 'V'
-TL0p  [sp78]	LCD 'p'
+TL0P  [sp78]    LCD Proximity?
+TL0V  [sp78]    LCD 'V'
+TL0p  [sp78]    LCD 'p'
 TL1V  [sp78]
 TL2V  [sp78]
 TLAV  [sp78]
@@ -266,11 +268,11 @@ TS0V  [sp78]
 TS2P  [sp78]
 TS2V  [sp78]
 TS2p  [sp78]
-Tm0P  [sp78]
-Tm0p  [sp78]
-Tm1P  [sp78]
-Tm1p  [sp78]
-Tp1P  [sp78]
+Tm0P  [sp78]    Main board 0
+Tm0p  [sp78]    (Same as Tm0P)
+Tm1P  [sp78]    Main board 1
+Tm1p  [sp78]    (Same as Tm1p)
+Tp1P  [sp78]    Power supply
 Tp2H  [sp78]
 Tp3H  [sp78]
 
@@ -279,11 +281,11 @@ UPRC  [ui16]
 ==== Voltages?
 VC0C  [sp1e]    CPU 0 main supply voltage? (about 1.14 V)
 VC0c  [ui16]
-VC5R  [sp1e]
-VC8R  [sp2d]
-VCVR  [sp1e]
+VC5R  [sp1e]    (About 0.001)
+VC8R  [sp2d]    (About 1.8)
+VCVR  [sp1e]    (About 1.1)
 VDPR  [sp78]    (About 12 V)
-VDPr  [ui16]    Same value as VDPR, but as an it representing milivolts.
+VDPr  [ui16]    Same value as VDPR, but as an int representing milivolts.
 VDSR  [spf0]    (About 1800. Strange for a voltage)
 VG0R  [sp4b]    GPU 0? (about 12V)
 
