@@ -46,6 +46,7 @@
 #define DATATYPE_FP           "fp"
 #define DATATYPE_SP           "sp"
 #define DATATYPE_UINT8        "ui8 "
+#define DATATYPE_UINT8nsp     "ui8"
 #define DATATYPE_UINT16       "ui16"
 #define DATATYPE_UINT32       "ui32"
 

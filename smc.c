@@ -209,9 +209,10 @@ void printVal(SMCVal_t val)
 {
     // - two spaces
     // - 4 characters for the name of the key
-    // - 4 characters for the datatype of the key (in square braces)
+    // - the characters of the datatype of the key (in square braces).
+    //      Usually 4 characters, but sometimes 3 (e.g. "zDBG" key)
     // - two spaces
-    printf("  %-4s  [%-4s]  ", val.key, val.dataType);
+    printf("  %-4s  [%s]  ", val.key, val.dataType);
 
     // print the value only if the dataSize is bigger than zero
     if (val.dataSize > 0)
@@ -220,6 +221,7 @@ void printVal(SMCVal_t val)
         // For fp.. and sp.. dataType use printFixedPoint()
         // For others print nothing
         if ((strcmp(val.dataType, DATATYPE_UINT8) == 0)  ||
+            (strcmp(val.dataType, DATATYPE_UINT8nsp) == 0) ||   // Sometimes ui8 type has no space after it
             (strcmp(val.dataType, DATATYPE_UINT16) == 0) ||
             (strcmp(val.dataType, DATATYPE_UINT32) == 0)
            )
