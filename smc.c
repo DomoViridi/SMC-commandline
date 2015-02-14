@@ -58,21 +58,24 @@ UInt32 bytes2uint32(char *bytes, int size)
 }
 
 /*
- * Convert the bytes in 'val' to a string of bytes in 'str'
+ * Convert the bytes in 'val' to a string in 'str'
  * - MSB becomes the first character
  * - LSB becomes the last character
  * Input 'val' is limited to 32 bits (4 bytes), so output will never be more than 4 characters
- *
- * Renamed from _ultostr() to better reflect the function
+ * However: it might be shorter than 4 characters, by including a '\0' byte.
+ * The string is padded with spaces to fill up 4 characters.
  */
-void uint32tobytes(char *str, UInt32 val)
+void uint32tostr(char *str, UInt32 val)
 {
-    str[0] = '\0'; // Redundant. sprintf() does not require a terminated string as first parameter
-    sprintf(str, "%c%c%c%c", 
+    sprintf(str, "%c%c%c%c",
             (unsigned int) val >> 24,
             (unsigned int) val >> 16,
             (unsigned int) val >> 8,
             (unsigned int) val);
+    // Pad with spaces if shorter than 4 characters
+    for (int i = (int)strlen(str); i < 4; i++) {
+        str[i] = ' ';
+    }
 }
 
 /*
@@ -209,10 +212,9 @@ void printVal(SMCVal_t val)
 {
     // - two spaces
     // - 4 characters for the name of the key
-    // - the characters of the datatype of the key (in square braces).
-    //      Usually 4 characters, but sometimes 3 (e.g. "zDBG" key)
+    // - 4 characters of the datatype of the key (in square braces).
     // - two spaces
-    printf("  %-4s  [%s]  ", val.key, val.dataType);
+    printf("  %s  [%s]  ", val.key, val.dataType);
 
     // print the value only if the dataSize is bigger than zero
     if (val.dataSize > 0)
@@ -221,7 +223,6 @@ void printVal(SMCVal_t val)
         // For fp.. and sp.. dataType use printFixedPoint()
         // For others print nothing
         if ((strcmp(val.dataType, DATATYPE_UINT8) == 0)  ||
-            (strcmp(val.dataType, DATATYPE_UINT8nsp) == 0) ||   // Sometimes ui8 type has no space after it
             (strcmp(val.dataType, DATATYPE_UINT16) == 0) ||
             (strcmp(val.dataType, DATATYPE_UINT32) == 0)
            )
@@ -397,8 +398,8 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *valp)
     // Remember the dataSize
     valp->dataSize = outputStructure.keyInfo.dataSize;
     
-    // Convert the UInt32 dataType to string of bytes in 'val'
-    uint32tobytes(valp->dataType, outputStructure.keyInfo.dataType);
+    // Convert the UInt32 dataType to string of bytes in '* valp'
+    uint32tostr(valp->dataType, outputStructure.keyInfo.dataType);
 
     // Set up inputStructure to read the actual value
     inputStructure.keyInfo.dataSize = valp->dataSize;      /** WARNING: accepts any data size. Danger of array overflow **/
@@ -496,9 +497,8 @@ kern_return_t SMCPrintAll(void)
              */
             continue; // on error skip the rest of the loop and go back to 'for'
 
-        // Convert the 4 bytes of the key name into a string of 4 bytes
-        // (independent of the byte order of the processor)
-        uint32tobytes(key, outputStructure.key);
+        // Convert the key name into a string of 4 bytes
+        uint32tostr(key, outputStructure.key);
 
         // Read the value associated with the key
         result = SMCReadKey(key, &val); // (ignore the result code)

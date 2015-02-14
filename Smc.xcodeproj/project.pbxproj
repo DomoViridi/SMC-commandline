@@ -6,6 +6,11 @@
 	objectVersion = 46;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		03E721FF1A8FD810004DA881 /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; };
+		03E722001A8FD811004DA881 /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		03E721EB1A8FC39D004DA881 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -176,6 +181,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03E721FF1A8FD810004DA881 /* smc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -183,6 +189,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03E722001A8FD811004DA881 /* smc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
