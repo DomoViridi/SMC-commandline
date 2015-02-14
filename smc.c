@@ -298,8 +298,9 @@ kern_return_t SMCClose(io_connect_t conn)
  * - 'outputStructure' will contain data returned from the kernel extension
  * - global variable 'conn' is used as the connection to use
  */
-kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *outputStructure)
+kern_return_t SMCCall(int index, SMCKeyData_t *inputStructurep, SMCKeyData_t *outputStructurep)
 {
+    kern_return_t	kernResult;
     size_t  structureInputSize;
     size_t  structureOutputSize;
     
@@ -309,32 +310,47 @@ kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *out
     // IOConnectMethodStructureIStructureO is depricated and no longer available
     // See https://developer.apple.com/library/mac/samplecode/SimpleUserClient/Listings/SimpleUserClientInterface_c.html
     // for an example of a replacement.
+    // This code is based on the SimpleUserClientInterface.c example mentioned above.
+    // It compiles differently for 32-bit and 64-bit targets
     
-    // For completeness there should be a pre-10.5 version of the code here, with #ifdef
-    // switches for compilation to different targets.
-    /*
-     From IOKitLib.h:
-     
-     kern_return_t
-     IOConnectCallStructMethod(
-        mach_port_t	 connection,		// In
-        uint32_t	 selector,          // In
-        const void	*inputStruct,		// In
-        size_t		 inputStructCnt,	// In
-        void		*outputStruct,		// Out
-        size_t		*outputStructCnt)	// In/Out
-     AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER;
+#if !defined(__LP64__)  // 32-bit mode?
+    // Check if Mac OS X 10.5 API is available...
+    if (IOConnectCallStructMethod != NULL) {
+        // ...and use it if it is.
+        kernResult =
+        IOConnectCallStructMethod(  conn,                   // an io_connect_t returned from IOServiceOpen().
+                                    index,                  // selector of the function to be called via the user client.
+                                    inputStructurep,         // pointer to the input struct parameter.
+                                    structureInputSize,     // the size of the input structure parameter.
+                                    outputStructurep,        // pointer to the output struct parameter.
+                                    &structureOutputSize	// pointer to the size of the output structure parameter.
+                                 );
+    }
+    else {
+        // Otherwise fall back to older API.
+        kernResult =
+        IOConnectMethodStructureIStructureO(    conn,					// an io_connect_t returned from IOServiceOpen().
+                                                index,                  // an index to the function to be called via the user client.
+                                                structureInputSize,     // the size of the input struct paramter.
+                                                &structureOutputSize,   // a pointer to the size of the output struct paramter.
+                                                inputStructurep,        // a pointer to the input struct parameter.
+                                                outputStructurep        // a pointer to the output struct parameter.
+                                           );
+    }
+#else // 64-bit mode
+    kernResult =
+    IOConnectCallStructMethod(  conn,                   // an io_connect_t returned from IOServiceOpen().
+                                index,                  // selector of the function to be called via the user client.
+                                inputStructurep,        // pointer to the input struct parameter.
+                                structureInputSize,     // the size of the input structure parameter.
+                                outputStructurep,       // pointer to the output struct parameter.
+                                &structureOutputSize	// pointer to the size of the output structure parameter.
+                                );
+#endif
 
-     */
-    return IOConnectCallStructMethod(
-                                        conn,
-                                        index,
-                                        inputStructure,
-                                        structureInputSize,
-                                        outputStructure,
-                                        &structureOutputSize
-                                    );
+    return kernResult;
 }
+
 
 /*
  * Read the specific SMC value for a given key
