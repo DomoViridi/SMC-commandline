@@ -28,11 +28,15 @@
 
 #define VERSION               "0.03-pre"
 
-#define OP_NONE               0
-#define OP_LIST               1 
-#define OP_READ               2
-#define OP_READ_FAN           3
-#define OP_WRITE              4
+enum {
+    OP_NONE,        // No option parsed yet
+    OP_LIST,        // -l
+    OP_READ,        // -r
+    OP_READ_FAN,    // -f
+    OP_WRITE,       // -w
+    OP_HELP,        // -h
+    OP_MANY         // Too many options entered
+};
 
 #define KERNEL_INDEX_SMC      2
 
@@ -48,6 +52,9 @@
 #define DATATYPE_UINT8        "ui8 "
 #define DATATYPE_UINT16       "ui16"
 #define DATATYPE_UINT32       "ui32"
+
+// Number of bytes in an SMCVal_t.bytes array
+#define BYTECOUNT             32
 
 typedef struct {
     char                  major;
@@ -71,7 +78,7 @@ typedef struct {
     char                  dataAttributes;
 } SMCKeyData_keyInfo_t;
 
-typedef char              SMCBytes_t[32]; 
+typedef char              SMCBytes_t[BYTECOUNT];
 
 typedef struct {
     UInt32                  key; 

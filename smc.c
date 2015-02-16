@@ -80,7 +80,7 @@ void uint32tostr(char *str, UInt32 val)
 
 /*
  * Convert a single hexadecimal character to an int
- * For non-hex characters return zero.
+ * For non-hex characters return -1.
  */
 int hex2int(char c)
 {
@@ -91,7 +91,7 @@ int hex2int(char c)
     } else if ('a' <= c && c <= 'f') {
         return c - 'a' + 10;
     }
-    return 0;
+    return -1;
 }
 
 /*
@@ -124,7 +124,7 @@ int hex2int(char c)
  */
 double val2float(SMCVal_t val)
 {
-    float total = 0;    // Running total of the return value
+    float total = 0.0;  // Running total of the return value
     int signbits = 0;   // Number of sign bits (0 or 1)
     int intbits = 0;    // Number of integer bits
     int fracbits = 0;   // Number of fraction bits
@@ -137,8 +137,16 @@ double val2float(SMCVal_t val)
         signbits = 1;           // Then we have a sign bit
     }
     intbits = hex2int(val.dataType[2]);     // Get the nr of integer bits
+    if (intbits < 0) {
+        fprintf(stderr, "Error: Expected hex digit in fp/sp data type. Found '%c' in '%s'\n", val.dataType[2], val.dataType);
+        return 0.0;
+    }
     fracbits = hex2int(val.dataType[3]);    // Get the nr of fraction bits
-    
+    if (fracbits < 0) {
+        fprintf(stderr, "Error: Expected hex digit in fp/sp data type. Found '%c' in '%s'\n", val.dataType[3], val.dataType);
+        return 0.0;
+    }
+
     // Build up the number from the bytes
     // The first byte may contain a sign
     byte = val.bytes[0];
@@ -391,7 +399,7 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *valp)
         return result;  // Quit if call fails
     
     /**** Try this: read the 'result' entry in outputStructure to see if call was valid */
-    result = outputStructure.result;
+    result = ((unsigned int)outputStructure.result) & 0xff; // Prevent unwanted sign extension
     if (result != kIOReturnSuccess)
         return result;  // Quit if call fails
     
@@ -418,6 +426,17 @@ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *valp)
     return kIOReturnSuccess;
 }
 
+/*
+ * Write an SMC value for a given key
+ * - Key is held in writeVal.key as a 4 character string, zero terminated
+ * - The value is held in writeVal.bytes
+ * To be succesful:
+ * - They key must already exist and have a value
+ * - The dataSize of the value to write must be equal to the existing value
+ * Returns an error code if either of these conditions is not met
+ * If a call fails, returns the error code
+ * If successful returns kIOReturnSuccess
+ */
 kern_return_t SMCWriteKey(SMCVal_t writeVal)
 {
     kern_return_t result;
@@ -598,16 +617,20 @@ kern_return_t SMCPrintFans(void)
  */
 void usage(char* prog)
 {
-    printf("Apple System Management Control (SMC) tool %s\n", VERSION);
+    printf("Apple System Management Control (SMC) tool, version %s\n", VERSION);
     printf("Usage:\n");
     printf("%s [options]\n", prog);
-    printf("    -f         : fan info decoded\n");
+    printf("    -f         : show decoded fan information\n");
     printf("    -h         : help\n");
     printf("    -k <key>   : key to manipulate\n");
     printf("    -l         : list all keys and values\n");
     printf("    -r         : read the value of a key\n");
     printf("    -w <value> : write the specified value to a key\n");
-    printf("    -v         : version\n");
+    printf("    -v         : print version\n");
+    printf("Use only one of -f -h -l -r -w at the same time\n");
+    printf("The -r and -w options require a -k option.\n");
+    printf("<key> must be an existing key.\n");
+    printf("<value> must be a string of an even number of hexadecimal digits.\n");
     printf("\n");
 }
 
@@ -618,9 +641,9 @@ int main(int argc, char *argv[])
     extern int    optind, optopt, opterr;
     
     kern_return_t result;
-    int           op = OP_NONE;
+    int           op = OP_NONE; // The operarion to execute
     UInt32Char_t  key = "\0";  // Can hold 4 bytes and a terminating \0
-    SMCVal_t      val;         // Struct to hold key, size, value and 32 bytes
+    SMCVal_t      val;         // Struct to hold key, size, data type and 32 bytes
 
     // Process the options. Reminder: the ':' denotes a required argument
     while ((c = getopt(argc, argv, "fhk:lrw:v")) != -1)
@@ -628,73 +651,109 @@ int main(int argc, char *argv[])
         switch(c)
         {
             case 'f':
-                op = OP_READ_FAN;
+                if (op != OP_NONE) {    // Not the only option given
+                    op = OP_MANY;
+                } else
+                    op = OP_READ_FAN;
                 break;
             case 'k':
-                strncpy(key, optarg, sizeof(key));   //fix for buffer overflow; limit to 4 characters (plus terminator)
+                strncpy(key, optarg, sizeof(key)-1);   //fix for buffer overflow; limit to 4 characters (plus terminator)
+                key[sizeof(key)-1] = '\0'; // Ensure propper termination if arg is more than 4 characters long
                 break;
             case 'l':
-                op = OP_LIST;
+                if (op != OP_NONE) {    // Not the only option given
+                    op = OP_MANY;
+                } else
+                    op = OP_LIST;
                 break;
             case 'r':
-                op = OP_READ;
+                if (op != OP_NONE) {    // Not the only option given
+                    op = OP_MANY;
+                } else
+                    op = OP_READ;
                 break;
             case 'v':
-                printf("%s\n", VERSION);    // Simply print the version number and quit
-                return 0;
+                printf("%s\n", VERSION);    // Simply print the version number
+                // Don't quit yet. Other options can still be executed
                 break;
             case 'w':
-                op = OP_WRITE;
+                if (op != OP_NONE) {    // Not the only option given
+                    op = OP_MANY;
+                } else
             {
                 int i;
-                char c[3];  // temp string to hold 2 hex digits and terminator
-                
-        /*
-         *  WRONG !!!
-         */
-                // go through the characters of <value> two by two (sort of...)
-                for (i = 0; i < strlen(optarg); i++)
-                {
-                    // Create a string of the next two characters in <value>
-                    // NOTE: 2*i will be much bigger than strlen(optarg), so this will parse beyond the end of <value>
-                    sprintf(c, "%c%c", optarg[i * 2], optarg[(i * 2) + 1]);
-                    // Convert the two hex digits to a byte and add it to val.bytes
-                    val.bytes[i] = (int) strtol(c, NULL, 16);
+                unsigned int l;  // length of the value string
+
+                op = OP_WRITE;
+
+                l = (unsigned int)strlen(optarg);
+
+                // check if value is all hex digits
+                for (i = 0; i < l; i++) {
+                    int d;
+                    d = hex2int(optarg[i]);
+                    if (d < 0) {
+                        break;  // Get out of loop if not a hex character
+                    }
                 }
-                val.dataSize = i / 2;   // Size in bytes: two hex characters form one byte
-                
-                // Half-assed check for valid input
-                // Better:
-                //  - scan string for hex digts
-                //  - nothing may follow the hex digits
-                //  - nr of digits must be even (?)
-                if ((val.dataSize * 2) != strlen(optarg))
-                {
-                    printf("Error: value is not valid\n");
+                if (i < l) {    // We did not make it to the end of the string
+                    fprintf(stderr, "Error: Non hex digit found in value for -w. Found: '%s'\n", optarg);
+                    return 1;
+
+                }
+                if (l != (2 * (l/2))) { // Not an even number of digits
+                    fprintf(stderr, "Error: value for -w must be an even number of hex digits. Found: '%s'\n", optarg);
                     return 1;
                 }
+                if (l/2 > BYTECOUNT) { // Too many digits to fit into val.bytes[]
+                    fprintf(stderr, "Error: value for -w too long; Only room for %d bytes (%d hex digits)\n", BYTECOUNT, 2*BYTECOUNT);
+                    return 1;
+                }
+
+                // Convert hex digits into bytes
+                // go through the characters of <value> two by two
+                // i denotes the pair of digits and the byte
+                for (i = 0; i < l/2; i++)
+                {
+                    val.bytes[i] = 16 * hex2int(optarg[2*i]) + hex2int(optarg[2*i + 1]);
+                }
+                val.dataSize = l / 2;   // Size in bytes: two hex characters form one byte
             }
                 break;
-            case 'h':
-            case '?':
-                op = OP_NONE; // Add: OP_HELP
+            case 'h':   // Help option
+                if (op != OP_NONE) {    // Not the only option given
+                    op = OP_MANY;
+                } else
+                    op = OP_HELP;
+                break;
+            case '?':  // Unrecognised option
+                // No action (getopt() will print a message)
                 break;
         }
     }
-    
-    if (op == OP_NONE) //  or == OP_HELP
+
+    // Print help if requested, or if no options given, or an unrecognised option is given, and quit
+    if (op == OP_NONE || op == OP_HELP)
     {
         usage(argv[0]);
+        return op == OP_HELP ? 0 : 1;   // No error for -h option, otherwise error
+    }
+
+    // Too many options given?
+    if (op == OP_MANY) {
+        fprintf(stderr, "Too many options\n");
+        fprintf(stderr, "Use only one of -f -h -l -r -w\n");
         return 1;
     }
-    
-/*
- *  Add all checks for valid parameters
- *   - OP_READ: must have 'key' value
- *   - OP_WRITE: must have 'key' value
- *   - Either -f, -r or -w. No combinations
- */
-    
+
+    // OP_READ and OP_WRITE must have a 'key' value
+    if (op == OP_READ || op == OP_WRITE) {
+        if (strlen(key) == 0) {
+            fprintf(stderr, "No -k <key> supplied for %s action\n", op == OP_READ ? "-r" : "-w");
+            return 1;
+        }
+    }
+
     // Open a connection to the SMC system; store the connection info in the 'conn' global variable
     SMCOpen(&conn);
 

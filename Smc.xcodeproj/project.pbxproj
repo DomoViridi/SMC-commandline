@@ -9,17 +9,19 @@
 /* Begin PBXBuildFile section */
 		03E721FF1A8FD810004DA881 /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; };
 		03E722001A8FD811004DA881 /* smc.c in Sources */ = {isa = PBXBuildFile; fileRef = 035C436416BE4B4500C8216A /* smc.c */; };
+		03E722021A922C07004DA881 /* smc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 03E721ED1A8FC39D004DA881 /* smc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		03E721EB1A8FC39D004DA881 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
+			buildActionMask = 12;
+			dstPath = "~/Documents/work/Smc";
 			dstSubfolderSpec = 0;
 			files = (
+				03E722021A922C07004DA881 /* smc in CopyFiles */,
 			);
-			runOnlyForDeploymentPostprocessing = 1;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		03E721F61A8FC3D6004DA881 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
